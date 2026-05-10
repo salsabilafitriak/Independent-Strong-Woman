@@ -38,7 +38,6 @@ C. Tree Data Structure (stack.c / .h)
 -Includes functions for directory creation, searching, and clearing flags across the tree.
 
 D. Time Travel / File I/O (time_travel.c / .h)
--Managed by Salsabila Fitria Khairizahrah.
 
 -Handles the creation and reading of .dat files.
 
@@ -90,6 +89,7 @@ Run: bash clean.sh
 This will remove save_*.dat files and temporary ghost files created during gameplay.
 
 8. Authors
-Salsabila Fitria Khairizahrah - Project Lead / Time Travel and Logic Systems
-
+-Salsabila Fitria Khairizahrah - Project Lead / Time Travel and Logic Systems
+-Plai
+-Rola
 Project Team Members - Data Structures and UI Design
