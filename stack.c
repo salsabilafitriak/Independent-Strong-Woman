@@ -1,37 +1,47 @@
-#include <stdio.h>
-#include <string.h>
 #include "stack.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-/*
- * Stack — stores the player's action history using LIFO.
- * Data Structure: Stack (Array-based implementation)
- */
+void createDirectoryPlatform(const char *path) {
+    char cmd[256];
+    #ifdef _WIN32
+        snprintf(cmd, sizeof(cmd), "mkdir \"%s\" 2>nul", path);
+    #else
+        snprintf(cmd, sizeof(cmd), "mkdir -p \"%s\"", path);
+    #endif
+    system(cmd);
+}
 
-static Action stack[MAX_STACK];
-static int top = -1;
+Folder* create_folder(const char* name) {
+    Folder* f = (Folder*)malloc(sizeof(Folder));
+    strcpy(f->name, name);
+    f->child_count = 0;
+    f->has_virus = 0;
+    for(int i=0; i<10; i++) f->children[i] = NULL;
+    return f;
+}
 
-/* Push a new action string onto the stack */
-void pushAction(const char *act) {
-    if (top < MAX_STACK - 1) {
-        top++;
-        strncpy(stack[top].action, act, sizeof(stack[top].action) - 1);
-        stack[top].action[sizeof(stack[top].action) - 1] = '\0';
+void add_child(Folder* parent, Folder* child) {
+    if (parent->child_count < 10) parent->children[parent->child_count++] = child;
+}
+
+Folder* find_child(Folder* parent, const char* name) {
+    for (int i = 0; i < parent->child_count; i++) {
+        if (strcmp(parent->children[i]->name, name) == 0) return parent->children[i];
     }
+    return NULL;
 }
 
-/* Pop (remove) the top action from the stack */
-void popAction(void) {
-    if (top >= 0) top--;
+void clear_virus_flags(Folder* root) {
+    for(int i=0; i<root->child_count; i++) root->children[i]->has_virus = 0;
 }
 
-/* Return number of items currently in the stack */
-int getStackSize(void) {
-    return top + 1;
-}
-
-/* Return the action string at index i (0 = bottom) */
-const char *getAction(int i) {
-    if (i >= 0 && i <= top)
-        return stack[i].action;
-    return "";
+void clearFiles(Folder *root) {
+    if (!root) return;
+    char p[256];
+    for (int i = 0; i < root->child_count; i++) {
+        snprintf(p, sizeof(p), "%s/GHOST_FILE.txt", root->children[i]->name); remove(p);
+        snprintf(p, sizeof(p), "%s/SECRET_KEY.txt", root->children[i]->name); remove(p);
+    }
 }
