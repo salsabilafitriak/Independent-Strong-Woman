@@ -1,157 +1,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ui.h"
-#include "stack.h"    /* getStackSize(), getAction() */
 
-/*
- * ui.c -- Terminal UI for OS.Kill()
- *
- * Responsible ONLY for rendering the terminal display.
- * No game logic, no data manipulation here.
- *
- * Data Structure used: Stack (reads history entries to display in HUD).
- */
+#define RESET   "\033[0m"
+#define RED     "\033[1;31m"
+#define GREEN   "\033[1;32m"
+#define YELLOW  "\033[1;33m"
+#define BLUE    "\033[1;34m"
+#define CYAN    "\033[1;36m"
+#define WHITE   "\033[1;37m"
 
-#ifdef _WIN32
-    #include <windows.h>
-    #define CLEAR_SCREEN()  system("cls")
-#else
-    #include <unistd.h>
-    #define CLEAR_SCREEN()  system("clear")
-#endif
-
-/* Max history entries shown in the HUD at once */
-#define HISTORY_MAX 5
-
-/* ------------------------------------------------------------------ */
-/*  drawManual                                                          */
-/* ------------------------------------------------------------------ */
-
-void drawManual(int wave) {
-    printf("+---------------------------------------------------------+\n");
-    printf("|                    MISSION MANUAL                      |\n");
-    printf("+---------------------------------------------------------+\n");
-    printf("| NAVIGATION                                              |\n");
-    printf("|   cd [folder]   -- move into a folder                  |\n");
-    printf("|   cd ..         -- return to C:/Root                   |\n");
-    printf("| SYSTEM COMMANDS                                         |\n");
-    printf("|   save          -- create a checkpoint  (max 3 times)  |\n");
-    printf("|   travel [n]    -- restore checkpoint n                |\n");
-    printf("|   undo          -- remove last entry from action stack  |\n");
-    printf("+---------------------------------------------------------+\n");
-
+void printMissionShort(int wave, int step) {
+    printf(YELLOW " [ MISSION GOAL ]" RESET);
     if (wave == 1) {
-        printf("| WAVE 1 OBJECTIVE                                        |\n");
-        printf("|   Find GHOST_FILE.txt hidden in one of the folders.    |\n");
-        printf("|   Navigate to that folder, then type:                  |\n");
-        printf("|     >> kill                                             |\n");
-    } else if (wave == 2) {
-        printf("| WAVE 2 OBJECTIVE                                        |\n");
-        printf("|   Find GHOST_FILE.txt AND read SECRET_KEY.txt.         |\n");
-        printf("|   Navigate to the GHOST_FILE folder, then type:        |\n");
-        printf("|     >> kill [4-digit code from SECRET_KEY]              |\n");
-    } else if (wave == 3) {
-        printf("| WAVE 3 OBJECTIVE  (FINAL WAVE)                         |\n");
-        printf("|   Open GHOST_FILE.txt -- answer the Data Structure quiz.|\n");
-        printf("|   Check ANSWER_A.txt / ANSWER_B.txt for hints.         |\n");
-        printf("|   Navigate to the GHOST_FILE folder, then type:        |\n");
-        printf("|     >> kill A     or     >> kill B                      |\n");
+        if (step == 1) printf("\n | ACTION: " WHITE "cd [folder]" RESET " -> Scan GHOST_FILE.txt");
+        else printf("\n | ACTION: " RED "kill" RESET " -> Attack (2x needed)");
+    } 
+    else if (wave == 2) {
+        if (step == 1) printf("\n | ACTION: " WHITE "cd [folder]" RESET " -> Locate encrypted Virus");
+        else if (step == 2) printf("\n | ACTION: " WHITE "cd .." RESET " -> Find " CYAN "SECRET_KEY.txt" RESET);
+        else printf("\n | ACTION: " RED "kill [code]" RESET " -> (3x attack needed)");
+    } 
+    else if (wave == 3) {
+        if (step == 1) printf("\n | ACTION: " WHITE "cd [folder]" RESET " -> Find Final Boss");
+        else printf("\n | ACTION: " RED "kill [A/B]" RESET " -> Answer Quiz (4x hit)");
     }
-
-    printf("+---------------------------------------------------------+\n");
 }
 
-/* ------------------------------------------------------------------ */
-/*  drawUI                                                              */
-/* ------------------------------------------------------------------ */
-
-void drawUI(char *loc, int wave, int vHP, int pHP, char *msg) {
-    CLEAR_SCREEN();
-
-#ifdef _WIN32
-    /* Red while virus is alive; green when defeated */
-    system(vHP > 0 ? "color 0C" : "color 0A");
-#endif
-
-    /* Header */
-    printf("+=========================================================+\n");
-    printf("|          OS.Kill()  --  VIRUS ELIMINATION SYSTEM       |\n");
-    printf("+=========================================================+\n");
-
-    /* Wave and location */
-    printf("| WAVE : %-3d                                              |\n", wave);
-    printf("| NODE : %-49s|\n", loc);
-
-    /* Player HP bar  (#  = health remaining) */
-    int p_fill = pHP / 10;
-    printf("| PLAYER HP : [%3d] [", pHP);
-    for (int i = 0; i < 10; i++) printf(i < p_fill ? "#" : ".");
-    printf("]                  |\n");
-
-    /* Virus HP bar  (! = threat remaining) */
-    int v_fill = vHP / 10;
-    printf("| VIRUS  HP : [%3d] [", vHP);
-    for (int i = 0; i < 10; i++) printf(i < v_fill ? "!" : ".");
-    printf("]                  |\n");
-
-    printf("+---------------------------------------------------------+\n");
-
-    /* Action history from Stack */
-    printf("| HISTORY (Stack -- last %d actions)                      |\n",
-           HISTORY_MAX);
-    printf("|  ");
-    int size  = getStackSize();
-    int start = (size > HISTORY_MAX) ? size - HISTORY_MAX : 0;
-    int shown = 0;
-    for (int i = start; i < size; i++) {
-        printf("[%s] ", getAction(i));
-        shown++;
-    }
-    if (shown == 0) printf("(empty)");
-    printf("\n");
-    printf("+---------------------------------------------------------+\n\n");
-
-    /* Inline mission manual */
-    drawManual(wave);
-
-    /* Log message */
-    printf("\n  LOG >> %s\n", msg);
-    printf("---------------------------------------------------------\n");
+void drawUI(char *loc, int wave, int vHP, int pHP, char *msg, Folder *root, Folder *current, int step, int u_lim, int s_lim) {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+    printf(CYAN "======================================================================" RESET "\n");
+    printf(CYAN "      SYSTEM DEFENSE: " WHITE "OS.Kill()" CYAN " | " YELLOW "WAVE %d" RESET "\n", wave);
+    printf(CYAN "======================================================================" RESET "\n");
+    
+    int p_fill = (pHP > 0) ? pHP / 10 : 0;
+    int v_fill = (vHP > 0) ? vHP / 20 : 0; 
+    printf(" PLAYER HP: " GREEN "[%-10.*s]" RESET " %3d | ", p_fill, "##########", pHP);
+    printf("VIRUS HP: " RED "[%-10.*s]" RESET " %3d\n", v_fill, "!!!!!!!!!!", vHP);
+    printf("----------------------------------------------------------------------\n");
+    printf(BLUE " POSITION : " WHITE "%-18s" RESET " |", loc);
+    printMissionShort(wave, step); 
+    printf("\n----------------------------------------------------------------------\n");
+    printf(GREEN " COMMANDS:" RESET " " WHITE "cd, kill, save [1-3], load [1-3]" RESET "\n");
+    printf("----------------------------------------------------------------------\n");
+    printf(YELLOW " [SYSTEM LOG]" RESET " >> %s\n", msg);
+    printf(CYAN "======================================================================" RESET "\n");
 }
 
-/* ------------------------------------------------------------------ */
-/*  drawGameOver                                                        */
-/* ------------------------------------------------------------------ */
-
-void drawGameOver(void) {
-#ifdef _WIN32
-    system("color 4F");
-#endif
-    printf("\n");
-    printf("+=========================================================+\n");
-    printf("|                                                         |\n");
-    printf("|          !! CRITICAL FAILURE !!  OS DESTROYED          |\n");
-    printf("|          Player HP reached 0.  The virus won.          |\n");
-    printf("|                                                         |\n");
-    printf("+=========================================================+\n");
-}
-
-/* ------------------------------------------------------------------ */
-/*  drawVictory                                                         */
-/* ------------------------------------------------------------------ */
-
-void drawVictory(void) {
-#ifdef _WIN32
-    system("color 0A");
-#endif
-    printf("\n");
-    printf("+=========================================================+\n");
-    printf("|                                                         |\n");
-    printf("|          [ SUCCESS ]  VIRUS PURGED.                    |\n");
-    printf("|          System stability restored.  OS is safe.       |\n");
-    printf("|                                                         |\n");
-    printf("+=========================================================+\n");
-    printf("\n  Press Enter to exit...\n");
-    getchar();
-    getchar();
-}
+void drawGameOver(void) { printf(RED "\n [!!!] SYSTEM FAILURE: DEFEATED [!!!]\n" RESET); }
+void drawVictory(void) { printf(GREEN "\n [+] SYSTEM SECURED: MISSION ACCOMPLISHED [+]\n" RESET); }
