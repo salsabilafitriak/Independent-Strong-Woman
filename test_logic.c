@@ -1,340 +1,178 @@
+#include "test_logic.h"
+#include "stack.h"
+#include "time_travel.h"
+#include "ui.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "test_logic.h"
-#include "time_travel.h"
-#include "stack.h"
-#include "ui.h"        /* drawUI, drawManual, drawGameOver, drawVictory */
 
 #ifdef _WIN32
     #include <windows.h>
 #else
     #include <unistd.h>
-    #include <strings.h>
-    #define Sleep(ms)       usleep((ms) * 1000)
-    #define Beep(freq, dur) ((void)0)
-    #define _stricmp        strcasecmp
 #endif
 
-/* ------------------------------------------------------------------ */
-/*  Global flags                                                        */
-/* ------------------------------------------------------------------ */
-int can_exit = 0;
+// Variabel Global
+int secret_code = 0;
+int quiz_idx = 0;
+char *questions[] = {
+    "Q1: Binary base?\nA. 10\nB. 2", 
+    "Q2: 1+1 Binary?\nA. 10\nB. 2", 
+    "Q3: RAM is...?\nA. Volatile\nB. Perm", 
+    "Q4: CPU Brain?\nA. ALU\nB. GPU"
+};
+char *answers[] = {"B", "A", "A", "A"};
 
-/* ------------------------------------------------------------------ */
-/*  Platform helpers                                                    */
-/* ------------------------------------------------------------------ */
-#ifdef _WIN32
-BOOL WINAPI ConsoleHandler(DWORD ctrlType) {
-    if (!can_exit) { Beep(400, 300); return TRUE; }
-    return FALSE;
-}
-
-void forceLockWindow(void) {
-    HWND hwnd = GetConsoleWindow();
-    if (hwnd) {
-        HMENU hmenu = GetSystemMenu(hwnd, FALSE);
-        if (hmenu) DeleteMenu(hmenu, SC_CLOSE, MF_BYCOMMAND);
-        SetWindowLong(hwnd, GWL_STYLE,
-                      GetWindowLong(hwnd, GWL_STYLE) & ~WS_SYSMENU);
+Folder* buildTree() {
+    createDirectoryPlatform("Root");
+    Folder* root = create_folder("Root");
+    char *dirs[] = {"System", "Users", "Temp", "Database", "Logs", "Config", "Backup", "Drivers"};
+    for (int i = 0; i < 8; i++) {
+        createDirectoryPlatform(dirs[i]);
+        add_child(root, create_folder(dirs[i]));
     }
-}
-#else
-void forceLockWindow(void) { /* no-op on Linux */ }
-#endif
-
-void createDirectoryPlatform(const char *path) {
-#ifdef _WIN32
-    CreateDirectory(path, NULL);
-#else
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd), "mkdir -p %s", path);
-    system(cmd);
-#endif
+    return root;
 }
 
-void createHiddenFile(char *folder, char *filename, char *content) {
-    char p[150];
-    snprintf(p, sizeof(p), "%s/%s", folder, filename);
-    FILE *f = fopen(p, "w");
-    if (f) { fprintf(f, "%s", content); fclose(f); }
-}
+void plantVirus(Folder *root, int wave) {
+    clearFiles(root); 
+    clear_virus_flags(root);
+    
+    int r = rand() % root->child_count;
+    root->children[r]->has_virus = 1;
+    
+    char path_v[256]; 
+    snprintf(path_v, sizeof(path_v), "%s/GHOST_FILE.txt", root->children[r]->name);
+    FILE *fv = fopen(path_v, "w");
+    if (!fv) return;
 
-void clearFiles(char *folders[], int count) {
-    char p[150];
-    for (int i = 0; i < count; i++) {
-        snprintf(p, sizeof(p), "%s/GHOST_FILE.txt", folders[i]); remove(p);
-        snprintf(p, sizeof(p), "%s/SECRET_KEY.txt", folders[i]); remove(p);
-        snprintf(p, sizeof(p), "%s/ANSWER_A.txt",   folders[i]); remove(p);
-        snprintf(p, sizeof(p), "%s/ANSWER_B.txt",   folders[i]); remove(p);
+    if (wave == 1) {
+        fprintf(fv, "W1 Virus Detected. Execute Kill Protocol.");
+    } else if (wave == 2) {
+        int s; 
+        do { s = rand() % root->child_count; } while (root->children[s]->has_virus);
+        secret_code = 1000 + rand() % 9000;
+        char ps[256]; 
+        snprintf(ps, sizeof(ps), "%s/SECRET_KEY.txt", root->children[s]->name);
+        FILE *fs = fopen(ps, "w"); 
+        if(fs) { fprintf(fs, "DECRYPTION KEY: %d", secret_code); fclose(fs); }
+        fprintf(fv, "W2 Virus Encrypted. Find the Key!");
+    } else if (wave == 3) {
+        if (quiz_idx < 4) {
+            fprintf(fv, "%s", questions[quiz_idx]);
+        } else {
+            fprintf(fv, "Virus core exposed! Type 'kill' to end this!");
+        }
     }
+    fclose(fv);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main game loop                                                      */
-/* ------------------------------------------------------------------ */
+void waveTransition(int wave, int type) {
+    printf("\n\033[1;33m--- WAVE %d %s ---\033[0m\n", wave, type==0?"STARTED":"FINISHED");
+    printf("Press Enter to continue...");
+    getchar();
+}
+
 void runGameLogic(void) {
-#ifdef _WIN32
     srand((unsigned)time(NULL));
-    forceLockWindow();
-    SetConsoleCtrlHandler(ConsoleHandler, TRUE);
-#else
-    srand((unsigned)time(NULL));
-#endif
+    char line[150], cmd[50], input[50], log_msg[200] = "System Online. Welcome back, Genius!";
+    int wave = 1, vHP = 100, pHP = 100;
+    
+    Folder *fs_root = buildTree();
+    Folder *cur_node = fs_root;
+    
+    waveTransition(1, 0); 
+    plantVirus(fs_root, wave);
 
-    char cmd[50], input[50];
-    char loc_display[50] = "C:/Root";
-    char log_msg[200]    = "System initialized. Hunt down the GHOST_FILE!";
-
-    /* 8 folders total; Wave 1 uses first 4, Waves 2-3 use all 8 */
-    char *folders[] = {
-        "System", "Users", "Database", "Temp",
-        "Config", "Logs",  "Drivers",  "Backup"
-    };
-
-    int wave         = 1;
-    int vHP          = 100;
-    int pHP          = 100;
-    int folder_limit = 4;
-    int q_index      = 0;
-    int current_pos  = -1;
-    int virus_pos, key_pos, secret_code;
-    int save_count   = 0;
-
-    /* Data Structure quiz pool */
-    char *questions[] = {
-        "Which structure uses LIFO (Last-In First-Out)?",
-        "Which structure represents a Hierarchy?",
-        "Which structure uses FIFO (First-In First-Out)?"
-    };
-    char *ans_a[]   = { "Stack", "Tree",  "Queue" };
-    char *ans_b[]   = { "Queue", "Stack", "Stack" };
-    char *correct[] = { "A",     "A",     "A"     };
-
-    /* Wave 1 setup */
-    for (int i = 0; i < 4; i++) createDirectoryPlatform(folders[i]);
-    virus_pos = rand() % 4;
-    createHiddenFile(folders[virus_pos], "GHOST_FILE.txt",
-                     "Do you really think you can find me with such a simple system?");
-
-    /* ══════════════ MAIN LOOP ══════════════ */
     while (1) {
-        drawUI(loc_display, wave, vHP, pHP, log_msg);
-
-        /* Defeat check */
-        if (pHP <= 0) {
-            can_exit = 1;
-            drawGameOver();
-            Sleep(3000);
-            exit(0);
-        }
-
-        /* Victory check */
+        // --- CEK KONDISI MENANG (FAKE ERROR & GENIUS MESSAGE) ---
         if (vHP <= 0 && wave == 3) {
-            can_exit = 1;
-            drawVictory();
-            break;
+            printf("\n\033[1;31mSegmentation fault (core dumped)\033[0m\n");
+            #ifdef _WIN32
+                Sleep(2000);
+            #else
+                sleep(2);
+            #endif
+            drawVictory(); 
+            printf("\n\033[1;32m [!] SYSTEM RECOVERED [!]\033[0m\n");
+            printf("\033[1;36m Yey! Selamat, anda memang GENIUS! \033[0m\n");
+            printf("\033[1;36m Mission Independent-Strong-Woman: SUCCESS. \033[0m\n\n");
+            break; 
         }
+
+        int step = (wave == 2 && cur_node->has_virus) ? 3 : (cur_node->has_virus ? 2 : 1);
+        char loc[200]; 
+        snprintf(loc, sizeof(loc), "C:/Root/%s", (cur_node == fs_root) ? "" : cur_node->name);
+        drawUI(loc, wave, vHP, pHP, log_msg, fs_root, cur_node, step, 0, 0);
+
+        if (pHP <= 0) { drawGameOver(); break; }
 
         printf(" Admin@OS.Kill >> ");
-        if (scanf("%49s", cmd) != 1) continue;
+        if (!fgets(line, sizeof(line), stdin)) continue;
+        int args = sscanf(line, "%s %s", cmd, input);
+        if (args < 1) continue;
 
-        /* ─── cd ─── */
-        if (strcmp(cmd, "cd") == 0) {
-            if (scanf("%49s", input) != 1) continue;
-
-            int found = 0;
-            if (strcmp(input, "..") == 0) {
-                current_pos = -1;
-                strcpy(loc_display, "C:/Root");
-                found = 1;
-            } else {
-                for (int i = 0; i < folder_limit; i++) {
-                    if (strcmp(input, folders[i]) == 0) {
-                        current_pos = i;
-                        snprintf(loc_display, sizeof(loc_display),
-                                 "C:/Root/%s", folders[i]);
-                        found = 1;
-                        break;
-                    }
-                }
-            }
-
-            if (!found) {
-                strcpy(log_msg, "Error: folder not found. Check available nodes.");
-            } else {
-                char act_msg[60];
-                snprintf(act_msg, sizeof(act_msg), "cd %s", input);
-                pushAction(act_msg);
-                strcpy(log_msg, "Navigating...");
-            }
-        }
-
-        /* ─── kill ─── */
+        // --- COMMAND: SAVE / LOAD ---
+        if (strcmp(cmd, "save") == 0) {
+            int res = execute_save_sequence(atoi(input), wave, pHP, vHP);
+            if(res == 1) strcpy(log_msg, "SUCCESS: Slot saved.");
+            else if(res == 0) strcpy(log_msg, "DENIED: Slot locked!");
+            else strcpy(log_msg, "ERROR: Invalid slot.");
+        } 
+        else if (strcmp(cmd, "load") == 0) {
+            int res = execute_load_sequence(atoi(input), &wave, &pHP, &vHP);
+            if(res == 1) {
+                cur_node = fs_root; plantVirus(fs_root, wave);
+                strcpy(log_msg, "TIME TRAVEL: Timeline recovered.");
+            } else strcpy(log_msg, "CRITICAL: Access denied.");
+        } 
+        // --- COMMAND: KILL (STRICT RANDOM RELOCATION) ---
         else if (strcmp(cmd, "kill") == 0) {
-
-            /* Wave 1 */
-            if (wave == 1) {
-                if (current_pos == virus_pos) {
-                    vHP -= 50;
-                    Beep(1000, 200);
-                    pushAction("kill: W1 Hit");
-
-                    if (vHP <= 0) {
-                        /* Transition to Wave 2 */
-                        wave = 2; vHP = 100; folder_limit = 8;
-                        for (int i = 4; i < 8; i++)
-                            createDirectoryPlatform(folders[i]);
-
-                        virus_pos   = rand() % 8;
-                        key_pos     = rand() % 8;
-                        secret_code = 1000 + rand() % 8999;
-
-                        createHiddenFile(folders[virus_pos], "GHOST_FILE.txt",
-                            "The core of despair... are you brave enough to open it?");
-                        char code_str[20];
-                        snprintf(code_str, sizeof(code_str), "KEY:%d", secret_code);
-                        createHiddenFile(folders[key_pos], "SECRET_KEY.txt", code_str);
-
-                        strcpy(log_msg, "WAVE 2 UNLOCKED! Find the SECRET_KEY first.");
-                    } else {
-                        /* Virus survived, relocate */
-                        virus_pos = rand() % 4;
-                        clearFiles(folders, 4);
-                        createHiddenFile(folders[virus_pos], "GHOST_FILE.txt",
-                            "Too slow! I wasn't there to begin with.");
-                        strcpy(log_msg, "Virus survived and relocated!");
-                    }
-                } else {
-                    pHP -= 20;
-                    pushAction("kill: W1 Miss");
-                    strcpy(log_msg, "MISS! Wrong folder. HP -20.");
+            if (cur_node->has_virus) {
+                if (wave == 1) { 
+                    vHP -= 50; 
+                    if(vHP <= 0){ waveTransition(1,1); wave++; vHP=150; waveTransition(2,0); }
+                    else strcpy(log_msg, "CRITICAL HIT! But the virus escaped!"); 
                 }
-            }
-
-            /* Wave 2 */
-            else if (wave == 2) {
-                int guess;
-                if (scanf("%d", &guess) != 1) {
-                    int c; while ((c = getchar()) != '\n' && c != EOF);
-                    pHP -= 20;
-                    pushAction("kill: W2 Invalid");
-                    strcpy(log_msg, "FAILED! Format: kill [4-digit code]. HP -20.");
-                } else {
-                    if (current_pos == virus_pos && guess == secret_code) {
-                        vHP -= 50;
-                        Beep(1200, 200);
-                        pushAction("kill: W2 Hit");
-
-                        if (vHP <= 0) {
-                            /* Transition to Wave 3 */
-                            wave = 3; vHP = 150;
-                            clearFiles(folders, 8);
-                            q_index   = rand() % 3;
-                            virus_pos = rand() % 8;
-                            createHiddenFile(folders[virus_pos], "GHOST_FILE.txt",
-                                             questions[q_index]);
-                            createHiddenFile(folders[virus_pos], "ANSWER_A.txt",
-                                             ans_a[q_index]);
-                            createHiddenFile(folders[virus_pos], "ANSWER_B.txt",
-                                             ans_b[q_index]);
-                            strcpy(log_msg, "FINAL WAVE! Use your Data Structure knowledge!");
-                        } else {
-                            /* Virus survived, relocate */
-                            virus_pos   = rand() % 8;
-                            key_pos     = rand() % 8;
-                            secret_code = 1000 + rand() % 8999;
-                            clearFiles(folders, 8);
-                            createHiddenFile(folders[virus_pos], "GHOST_FILE.txt",
-                                "Pathetic... this body is just a fragment of the darkness.");
-                            char code_str[20];
-                            snprintf(code_str, sizeof(code_str), "CODE:%d", secret_code);
-                            createHiddenFile(folders[key_pos], "SECRET_KEY.txt", code_str);
-                            strcpy(log_msg, "Hit! Virus relocated. Find the new key.");
-                        }
-                    } else {
-                        pHP -= 20;
-                        pushAction("kill: W2 Miss");
-                        strcpy(log_msg, "FAILED! Wrong folder or wrong code. HP -20.");
+                else if (wave == 2) {
+                    if (args >= 2 && atoi(input) == secret_code) { 
+                        vHP -= 50; 
+                        if(vHP <= 0){ waveTransition(2,1); wave++; vHP=200; waveTransition(3,0); }
+                        else strcpy(log_msg, "DECRYPTION SUCCESS! Genius move, but it fled!");
+                    } else { 
+                        pHP -= 15; strcpy(log_msg, "ACCESS DENIED! Wrong code. Virus escaped!"); 
                     }
-                }
-            }
-
-            /* Wave 3 */
-            else if (wave == 3) {
-                char choice[10];
-                if (scanf("%9s", choice) == 1) {
-                    if (current_pos == virus_pos) {
-                        if (_stricmp(choice, correct[q_index]) == 0) {
-                            vHP -= 50;
-                            Beep(1500, 300);
-                            pushAction("kill: W3 Correct");
-
-                            if (vHP > 0) {
-                                /* Virus still alive, new question */
-                                q_index   = rand() % 3;
-                                virus_pos = rand() % 8;
-                                clearFiles(folders, 8);
-                                createHiddenFile(folders[virus_pos], "GHOST_FILE.txt",
-                                                 questions[q_index]);
-                                createHiddenFile(folders[virus_pos], "ANSWER_A.txt",
-                                                 ans_a[q_index]);
-                                createHiddenFile(folders[virus_pos], "ANSWER_B.txt",
-                                                 ans_b[q_index]);
-                                strcpy(log_msg, "Correct! Virus weakened but still alive...");
-                            }
-                        } else {
-                            pHP -= 30;
-                            pushAction("kill: W3 Wrong Answer");
-                            strcpy(log_msg, "WRONG ANSWER! Critical damage! HP -30.");
-                        }
-                    } else {
-                        pHP -= 30;
-                        pushAction("kill: W3 Wrong Folder");
-                        strcpy(log_msg, "WRONG FOLDER! No target here! HP -30.");
+                } 
+                else if (wave == 3) {
+                    if (args >= 2 && strcasecmp(input, answers[quiz_idx]) == 0) {
+                        vHP -= 50; strcpy(log_msg, "LOGIC MATCH! Core hit, but it relocated!");
+                    } else { 
+                        pHP -= 30; strcpy(log_msg, "TERMINAL ERROR! Wrong answer. Virus fled!"); 
                     }
+                    quiz_idx++; 
                 }
+            } else { 
+                pHP -= 20; strcpy(log_msg, "SYSTEM MISS! Target folder empty. Virus fled!"); 
             }
-        }
-
-        /* ─── undo ─── */
-        else if (strcmp(cmd, "undo") == 0) {
-            popAction();
-            strcpy(log_msg, "Last action removed from the stack (undo).");
-        }
-
-        /* ─── save ─── */
-        else if (strcmp(cmd, "save") == 0) {
-            if (save_count < 3) {
-                save_count++;
-                save_checkpoint(pHP, loc_display, NULL);
-                snprintf(log_msg, sizeof(log_msg),
-                         "Checkpoint saved! (%d/3 saves used)", save_count);
-                pushAction("save");
-            } else {
-                strcpy(log_msg, "Save limit reached (3/3). Cannot save anymore!");
+            
+            // --- NO MERCY ZONE: Virus ALWAYS moves after any kill attempt ---
+            plantVirus(fs_root, wave); 
+            cur_node = fs_root; 
+        } 
+        // --- COMMAND: CD ---
+        else if (strcmp(cmd, "cd") == 0 && args >= 2) {
+            if (strcmp(input, "..") == 0) cur_node = fs_root;
+            else {
+                Folder *t = find_child(cur_node, input);
+                if(t) {
+                    cur_node = t;
+                    if(cur_node->has_virus) {
+                        char p[256]; snprintf(p, sizeof(p), "%s/GHOST_FILE.txt", cur_node->name);
+                        FILE *f = fopen(p, "r"); if(f){fgets(log_msg, 200, f); fclose(f);}
+                    }
+                } else strcpy(log_msg, "ERROR: Path not found.");
             }
-        }
-
-        /* ─── travel ─── */
-        else if (strcmp(cmd, "travel") == 0) {
-            int version;
-            if (scanf("%d", &version) == 1) {
-                time_travel(version, &pHP, loc_display, NULL);
-                current_pos = -1;
-                strcpy(log_msg, "System restored to previous checkpoint.");
-                pushAction("travel");
-            } else {
-                strcpy(log_msg, "Usage: travel [checkpoint number]");
-            }
-        }
-
-        /* ─── unknown ─── */
-        else {
-            strcpy(log_msg, "Unknown command. Try: cd, kill, save, travel, undo.");
         }
     }
-
-    clearFiles(folders, 8);
 }
