@@ -1,0 +1,2 @@
+Project Description
+Independent-Strong-Woman is a modular terminal-based application developed in the C programming language. The project simulates a cybersecurity mission where the player must navigate a virtual file system to track down and eliminate a mutating virus. This project serves as a practical implementation of computer engineering concepts, specifically focusing on non-linear data structures and modular system design.
