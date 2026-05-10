@@ -1,15 +1,18 @@
 #ifndef STACK_H
 #define STACK_H
 
-#define MAX_STACK 100
+typedef struct Folder {
+    char name[50];
+    struct Folder *children[10];
+    int child_count;
+    int has_virus;
+} Folder;
 
-typedef struct {
-    char action[100];
-} Action;
-
-void pushAction(const char* act);
-void popAction();
-int getStackSize();
-const char* getAction(int i);
+Folder* create_folder(const char* name);
+void add_child(Folder* parent, Folder* child);
+Folder* find_child(Folder* parent, const char* name);
+void clear_virus_flags(Folder* root);
+void clearFiles(Folder *root);
+void createDirectoryPlatform(const char *path);
 
 #endif
