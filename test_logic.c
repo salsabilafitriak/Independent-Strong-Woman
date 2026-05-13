@@ -18,12 +18,12 @@
 int secret_code = 0;
 int quiz_idx = 0;
 char *questions[] = {
-    "Q1: Binary base?\nA. 10\nB. 2", 
-    "Q2: 1+1 Binary?\nA. 10\nB. 2", 
-    "Q3: RAM is...?\nA. Volatile\nB. Perm", 
-    "Q4: CPU Brain?\nA. ALU\nB. GPU"
+    "Q1: Which data structure uses LIFO (Last-In-First-Out)?\nA. Stack\nB. Queue", 
+    "Q2: In a Tree structure, what is the top-most node called?\nA. Leaf\nB. Root", 
+    "Q3: Which structure is best for representing folder hierarchies?\nA. Linked List\nB. Tree", 
+    "Q4: What is the time complexity to access an element in an Array by index?\nA. O(1)\nB. O(n)"
 };
-char *answers[] = {"B", "A", "A", "A"};
+char *answers[] = {"A", "B", "B", "A"};
 
 Folder* buildTree() {
     createDirectoryPlatform("Root");
