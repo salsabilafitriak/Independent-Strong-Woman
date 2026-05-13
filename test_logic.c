@@ -37,7 +37,6 @@ Folder* buildTree() {
 }
 
 void plantVirus(Folder *root, int wave) {
-    // 1. Cari dulu folder mana yang ada virusnya sekarang
     int old_virus_idx = -1;
     for (int i = 0; i < root->child_count; i++) {
         if (root->children[i]->has_virus) {
@@ -65,7 +64,6 @@ void plantVirus(Folder *root, int wave) {
         fprintf(fv, "W1 Virus Detected. Execute Kill Protocol.");
     } else if (wave == 2) {
         int s; 
-        // Taruh key di folder yang tidak ada virusnya
         do { s = rand() % root->child_count; } while (root->children[s]->has_virus);
         secret_code = 1000 + rand() % 9000;
         char ps[256]; 
@@ -111,8 +109,7 @@ void runGameLogic(void) {
             #endif
             drawVictory(); 
             printf("\n\033[1;32m [!] SYSTEM RECOVERED [!]\033[0m\n");
-            printf("\033[1;36m Yey! Selamat, anda memang GENIUS! \033[0m\n");
-            printf("\033[1;36m Mission Independent-Strong-Woman: SUCCESS. \033[0m\n\n");
+            printf("\033[1;36m Yey! Congratulations! You truly are a GENIUS! \033[0m\n");
             clear_history(&nav_history);
             break; 
         }
@@ -132,7 +129,6 @@ void runGameLogic(void) {
         if (strcmp(cmd, "save") == 0) {
             int res = execute_save_sequence(atoi(input), wave, pHP, vHP);
             if(res == 1) strcpy(log_msg, "SUCCESS: Slot saved.");
-            else if(res == 0) strcpy(log_msg, "DENIED: Slot locked!");
             else strcpy(log_msg, "ERROR: Invalid slot.");
         } 
         else if (strcmp(cmd, "load") == 0) {
@@ -145,7 +141,6 @@ void runGameLogic(void) {
             } else strcpy(log_msg, "CRITICAL: Access denied.");
         } 
         else if (strcmp(cmd, "kill") == 0) {
-            // Logika pengecekan serangan
             if (cur_node->has_virus) {
                 if (wave == 1) { 
                     vHP -= 50; 
@@ -156,25 +151,23 @@ void runGameLogic(void) {
                     if (args >= 2 && atoi(input) == secret_code) { 
                         vHP -= 50; 
                         if(vHP <= 0){ waveTransition(2,1); wave++; vHP=200; waveTransition(3,0); }
-                        else strcpy(log_msg, "DECRYPTION SUCCESS! Genius move, but it fled!");
-                    } else { 
-                        pHP -= 15; strcpy(log_msg, "ACCESS DENIED! Wrong code. Virus escaped!"); 
-                    }
+                        else strcpy(log_msg, "DECRYPTION SUCCESS! Genius move!");
+                    } else { pHP -= 15; strcpy(log_msg, "ACCESS DENIED! Wrong code."); }
                 } 
                 else if (wave == 3) {
                     if (args >= 2 && strcasecmp(input, answers[quiz_idx]) == 0) {
-                        vHP -= 50; strcpy(log_msg, "LOGIC MATCH! Core hit, but it relocated!");
+                        vHP -= 50; 
+                        quiz_idx++; // Nambah hanya kalau benar
+                        strcpy(log_msg, "LOGIC MATCH! Core hit!");
                     } else { 
-                        pHP -= 30; strcpy(log_msg, "TERMINAL ERROR! Wrong answer. Virus fled!"); 
+                        pHP -= 30; 
+                        // quiz_idx TIDAK bertambah di sini
+                        strcpy(log_msg, "TERMINAL ERROR! Wrong answer."); 
                     }
-                    quiz_idx++; 
                 }
-            } else { 
-                pHP -= 20; strcpy(log_msg, "SYSTEM MISS! Target folder empty. Virus fled!"); 
-            }
+            } else { pHP -= 20; strcpy(log_msg, "SYSTEM MISS! Target folder empty."); }
             
             plantVirus(fs_root, wave); 
-            // Pemain otomatis respawn ke folder sebelumnya untuk menghindari virus diam di tempat
             Folder *prev = pop_history(&nav_history); 
             cur_node = (prev != NULL) ? prev : fs_root; 
         } 
@@ -182,8 +175,7 @@ void runGameLogic(void) {
             if (strcmp(input, "..") == 0) {
                 Folder *prev = pop_history(&nav_history);
                 cur_node = (prev != NULL) ? prev : fs_root;
-            }
-            else {
+            } else {
                 Folder *t = find_child(cur_node, input);
                 if(t) {
                     push_history(&nav_history, cur_node);
@@ -191,6 +183,8 @@ void runGameLogic(void) {
                     if(cur_node->has_virus) {
                         char p[256]; snprintf(p, sizeof(p), "%s/GHOST_FILE.txt", cur_node->name);
                         FILE *f = fopen(p, "r"); if(f){fgets(log_msg, 200, f); fclose(f);}
+                    } else {
+                        strcpy(log_msg, "Folder accessed. System clean.");
                     }
                 } else strcpy(log_msg, "ERROR: Path not found.");
             }
