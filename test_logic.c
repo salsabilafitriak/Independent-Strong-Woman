@@ -36,7 +36,6 @@ Folder* buildTree() {
     return root;
 }
 
-// Perbaikan: Fungsi plantVirus sekarang menjamin virus pindah ke folder yang BERBEDA
 void plantVirus(Folder *root, int wave) {
     // 1. Cari dulu folder mana yang ada virusnya sekarang
     int old_virus_idx = -1;
@@ -47,15 +46,13 @@ void plantVirus(Folder *root, int wave) {
         }
     }
 
-    // 2. Bersihkan file dan flag lama
     clearFiles(root); 
     clear_virus_flags(root);
     
-    // 3. Pilih folder baru yang TIDAK SAMA dengan folder lama
     int r;
     do {
         r = rand() % root->child_count;
-    } while (r == old_virus_idx); // Ulangi jika angka acaknya sama dengan lokasi lama
+    } while (r == old_virus_idx); 
 
     root->children[r]->has_virus = 1;
     
@@ -176,7 +173,6 @@ void runGameLogic(void) {
                 pHP -= 20; strcpy(log_msg, "SYSTEM MISS! Target folder empty. Virus fled!"); 
             }
             
-            // --- NO MERCY ZONE: VIRUS PASTI PINDAH FOLDER ---
             plantVirus(fs_root, wave); 
             // Pemain otomatis respawn ke folder sebelumnya untuk menghindari virus diam di tempat
             Folder *prev = pop_history(&nav_history); 
