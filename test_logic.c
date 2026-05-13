@@ -1,7 +1,8 @@
 #include "test_logic.h"
-#include "stack.h"
+#include "fileSystem.h" 
 #include "time_travel.h"
 #include "ui.h"
+#include "history.h"    
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,11 +36,27 @@ Folder* buildTree() {
     return root;
 }
 
+// Perbaikan: Fungsi plantVirus sekarang menjamin virus pindah ke folder yang BERBEDA
 void plantVirus(Folder *root, int wave) {
+    // 1. Cari dulu folder mana yang ada virusnya sekarang
+    int old_virus_idx = -1;
+    for (int i = 0; i < root->child_count; i++) {
+        if (root->children[i]->has_virus) {
+            old_virus_idx = i;
+            break;
+        }
+    }
+
+    // 2. Bersihkan file dan flag lama
     clearFiles(root); 
     clear_virus_flags(root);
     
-    int r = rand() % root->child_count;
+    // 3. Pilih folder baru yang TIDAK SAMA dengan folder lama
+    int r;
+    do {
+        r = rand() % root->child_count;
+    } while (r == old_virus_idx); // Ulangi jika angka acaknya sama dengan lokasi lama
+
     root->children[r]->has_virus = 1;
     
     char path_v[256]; 
@@ -51,6 +68,7 @@ void plantVirus(Folder *root, int wave) {
         fprintf(fv, "W1 Virus Detected. Execute Kill Protocol.");
     } else if (wave == 2) {
         int s; 
+        // Taruh key di folder yang tidak ada virusnya
         do { s = rand() % root->child_count; } while (root->children[s]->has_virus);
         secret_code = 1000 + rand() % 9000;
         char ps[256]; 
@@ -76,6 +94,7 @@ void waveTransition(int wave, int type) {
 
 void runGameLogic(void) {
     srand((unsigned)time(NULL));
+    StackNode *nav_history = NULL;
     char line[150], cmd[50], input[50], log_msg[200] = "System Online. Welcome back, Genius!";
     int wave = 1, vHP = 100, pHP = 100;
     
@@ -86,7 +105,6 @@ void runGameLogic(void) {
     plantVirus(fs_root, wave);
 
     while (1) {
-        // --- CEK KONDISI MENANG (FAKE ERROR & GENIUS MESSAGE) ---
         if (vHP <= 0 && wave == 3) {
             printf("\n\033[1;31mSegmentation fault (core dumped)\033[0m\n");
             #ifdef _WIN32
@@ -98,6 +116,7 @@ void runGameLogic(void) {
             printf("\n\033[1;32m [!] SYSTEM RECOVERED [!]\033[0m\n");
             printf("\033[1;36m Yey! Selamat, anda memang GENIUS! \033[0m\n");
             printf("\033[1;36m Mission Independent-Strong-Woman: SUCCESS. \033[0m\n\n");
+            clear_history(&nav_history);
             break; 
         }
 
@@ -106,14 +125,13 @@ void runGameLogic(void) {
         snprintf(loc, sizeof(loc), "C:/Root/%s", (cur_node == fs_root) ? "" : cur_node->name);
         drawUI(loc, wave, vHP, pHP, log_msg, fs_root, cur_node, step, 0, 0);
 
-        if (pHP <= 0) { drawGameOver(); break; }
+        if (pHP <= 0) { drawGameOver(); clear_history(&nav_history); break; }
 
         printf(" Admin@OS.Kill >> ");
         if (!fgets(line, sizeof(line), stdin)) continue;
         int args = sscanf(line, "%s %s", cmd, input);
         if (args < 1) continue;
 
-        // --- COMMAND: SAVE / LOAD ---
         if (strcmp(cmd, "save") == 0) {
             int res = execute_save_sequence(atoi(input), wave, pHP, vHP);
             if(res == 1) strcpy(log_msg, "SUCCESS: Slot saved.");
@@ -123,12 +141,14 @@ void runGameLogic(void) {
         else if (strcmp(cmd, "load") == 0) {
             int res = execute_load_sequence(atoi(input), &wave, &pHP, &vHP);
             if(res == 1) {
-                cur_node = fs_root; plantVirus(fs_root, wave);
+                cur_node = fs_root; 
+                clear_history(&nav_history); 
+                plantVirus(fs_root, wave);
                 strcpy(log_msg, "TIME TRAVEL: Timeline recovered.");
             } else strcpy(log_msg, "CRITICAL: Access denied.");
         } 
-        // --- COMMAND: KILL (STRICT RANDOM RELOCATION) ---
         else if (strcmp(cmd, "kill") == 0) {
+            // Logika pengecekan serangan
             if (cur_node->has_virus) {
                 if (wave == 1) { 
                     vHP -= 50; 
@@ -156,16 +176,21 @@ void runGameLogic(void) {
                 pHP -= 20; strcpy(log_msg, "SYSTEM MISS! Target folder empty. Virus fled!"); 
             }
             
-            // --- NO MERCY ZONE: Virus ALWAYS moves after any kill attempt ---
+            // --- NO MERCY ZONE: VIRUS PASTI PINDAH FOLDER ---
             plantVirus(fs_root, wave); 
-            cur_node = fs_root; 
+            // Pemain otomatis respawn ke folder sebelumnya untuk menghindari virus diam di tempat
+            Folder *prev = pop_history(&nav_history); 
+            cur_node = (prev != NULL) ? prev : fs_root; 
         } 
-        // --- COMMAND: CD ---
         else if (strcmp(cmd, "cd") == 0 && args >= 2) {
-            if (strcmp(input, "..") == 0) cur_node = fs_root;
+            if (strcmp(input, "..") == 0) {
+                Folder *prev = pop_history(&nav_history);
+                cur_node = (prev != NULL) ? prev : fs_root;
+            }
             else {
                 Folder *t = find_child(cur_node, input);
                 if(t) {
+                    push_history(&nav_history, cur_node);
                     cur_node = t;
                     if(cur_node->has_virus) {
                         char p[256]; snprintf(p, sizeof(p), "%s/GHOST_FILE.txt", cur_node->name);
