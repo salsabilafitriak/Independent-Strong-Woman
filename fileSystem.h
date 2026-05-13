@@ -1,5 +1,5 @@
-#ifndef STACK_H
-#define STACK_H
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
 
 typedef struct Folder {
     char name[50];
