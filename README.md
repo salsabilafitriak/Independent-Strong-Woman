@@ -108,7 +108,7 @@ OS.Kill/
 ├── test_logic.c/h   # Core game loop and wave logic
 ├── fileSystem.c/h   # N-ary Tree (folder) data structure
 ├── history.c/h      # Stack (navigation history)
-├── bfs.c/h          # BFS algorithm with array-based queue
+├── Bfs.c/h          # BFS algorithm with array-based queue
 ├── time_travel.c/h  # Save/load system
 ├── ui.c/h           # Terminal UI rendering
 ├── .gitignore       # Excludes generated folders and save files
