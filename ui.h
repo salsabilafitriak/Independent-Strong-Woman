@@ -3,10 +3,10 @@
 
 #include "fileSystem.h"
 
-struct Folder;
-typedef struct Folder Folder;
+void drawUI(char *loc, int wave, int vHP, int pHP, char *msg,
+            Folder *root, Folder *current, int step, int depth, char *action);
 
-void drawUI(char *loc, int wave, int vHP, int pHP, char *msg, Folder *root, Folder *current, int step, int u_lim, int s_lim);
+void drawWaveTransition(int wave, int type);
 void drawGameOver(void);
 void drawVictory(void);
 
