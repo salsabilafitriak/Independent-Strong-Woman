@@ -4,7 +4,7 @@
 
 ---
 
-## 👥 Team Members
+## Team Members
 
 | Name | GitHub Username |
 |------|----------------|
@@ -12,7 +12,7 @@
 | Member 2 | `@plai-cloud` |
 | Member 3 | `@thhs16` |
 
-> **Commit Hash:** `b6ceb5d`
+> **Commit Hash:** `42c75e2`
 
 ---
 
