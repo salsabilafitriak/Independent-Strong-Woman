@@ -12,7 +12,7 @@
 | Member 2 | `@plai-cloud` |
 | Member 3 | `@thhs16` |
 
-> **Commit Hash:** `42c75e2`
+> **Commit Hash:** `de7a0fd`
 
 ---
 
