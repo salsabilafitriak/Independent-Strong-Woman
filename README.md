@@ -78,7 +78,7 @@ A singly-linked stack (`StackNode`) stores the player's folder traversal history
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 OS.Kill/
