@@ -3,10 +3,7 @@
 
 #include "fileSystem.h"
 
-extern int can_exit;
-
-void runGameLogic(void);
-void clearAllFiles(Folder *root);
+void    runGameLogic(void);
 Folder* buildTree(void);
 
 #endif
