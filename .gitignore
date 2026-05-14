@@ -1,8 +1,5 @@
-System/
-Users/
-Database/
-Temp/
-Config/
-Logs/
-Drivers/
-Backup/
+
+GHOST_FILE.txt
+SECRET_KEY.txt
+save_slot_*.txt
+Root/
