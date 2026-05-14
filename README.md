@@ -126,7 +126,7 @@ OS.Kill/
 ### Compile
 
 ```bash
-gcc main.c test_logic.c fileSystem.c history.c bfs.c time_travel.c ui.c -o oskill
+gcc main.c test_logic.c fileSystem.c history.c Bfs.c time_travel.c ui.c -o oskill
 ```
 
 ### Run
