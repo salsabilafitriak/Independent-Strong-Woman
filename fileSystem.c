@@ -26,7 +26,6 @@ Folder* create_folder(const char* name) {
     f->name[MAX_NAME_LEN - 1] = '\0';
     f->child_count    = 0;
     f->has_virus      = 0;
-    f->is_scanned     = 0;
     f->infection_level = 0;
     for (int i = 0; i < MAX_CHILDREN; i++) f->children[i] = NULL;
     return f;
@@ -58,18 +57,6 @@ void clear_virus_flags(Folder* root) {
         for (int j = 0; j < root->children[i]->child_count; j++) {
             root->children[i]->children[j]->has_virus = 0;
             root->children[i]->children[j]->infection_level = 0;
-        }
-    }
-}
-
-// Reset semua scan flags di seluruh tree
-void clear_scan_flags(Folder* root) {
-    if (!root) return;
-    root->is_scanned = 0;
-    for (int i = 0; i < root->child_count; i++) {
-        root->children[i]->is_scanned = 0;
-        for (int j = 0; j < root->children[i]->child_count; j++) {
-            root->children[i]->children[j]->is_scanned = 0;
         }
     }
 }
