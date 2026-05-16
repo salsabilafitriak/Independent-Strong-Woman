@@ -68,6 +68,7 @@ Folder* bfs_spread_virus(Folder *root, int wave) {
             }
         }
 }
+}
 
 Folder* bfs_find_virus(Folder *root) {
     BFSQueue q;
