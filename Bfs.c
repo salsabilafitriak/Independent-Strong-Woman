@@ -67,17 +67,6 @@ Folder* bfs_spread_virus(Folder *root, int wave) {
                 spread_count++;
             }
         }
-
-        for (int k = 0; k < root->child_count && spread_count < spread_limit; k++) {
-            Folder *sibling = root->children[k];
-            if (!sibling->has_virus && sibling != src) {
-                sibling->infection_level++;
-                spread_count++;
-            }
-        }
-    }
-
-    return last_spread;
 }
 
 Folder* bfs_find_virus(Folder *root) {
