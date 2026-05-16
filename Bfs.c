@@ -13,9 +13,9 @@ int bfs_queue_empty(BFSQueue *q) {
 }
 
 int bfs_enqueue(BFSQueue *q, Folder *f) {
-    if (q->size >= BFS_QUEUE_SIZE) return 0; // Queue penuh
+    if (q->size >= BFS_QUEUE_SIZE) return 0; 
     q->data[q->rear] = f;
-    q->rear  = (q->rear + 1) % BFS_QUEUE_SIZE; // Circular array
+    q->rear  = (q->rear + 1) % BFS_QUEUE_SIZE; 
     q->size++;
     return 1;
 }
@@ -23,7 +23,7 @@ int bfs_enqueue(BFSQueue *q, Folder *f) {
 Folder* bfs_dequeue(BFSQueue *q) {
     if (bfs_queue_empty(q)) return NULL;
     Folder *f = q->data[q->front];
-    q->front = (q->front + 1) % BFS_QUEUE_SIZE; // Circular array
+    q->front = (q->front + 1) % BFS_QUEUE_SIZE; 
     q->size--;
     return f;
 }
@@ -61,7 +61,7 @@ Folder* bfs_spread_virus(Folder *root, int wave) {
             if (!neighbor->has_virus) {
                 neighbor->infection_level++;
                 if (neighbor->infection_level >= 2) {
-                    neighbor->has_virus = 1; // Fully infected
+                    neighbor->has_virus = 1; 
                     last_spread = neighbor;
                 }
                 spread_count++;
