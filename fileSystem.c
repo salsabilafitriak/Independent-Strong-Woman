@@ -53,7 +53,7 @@ void clear_virus_flags(Folder* root) {
     for (int i = 0; i < root->child_count; i++) {
         root->children[i]->has_virus = 0;
         root->children[i]->infection_level = 0;
-        // Level 2 (grandchildren)
+        
         for (int j = 0; j < root->children[i]->child_count; j++) {
             root->children[i]->children[j]->has_virus = 0;
             root->children[i]->children[j]->infection_level = 0;
