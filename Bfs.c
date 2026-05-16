@@ -28,41 +28,6 @@ Folder* bfs_dequeue(BFSQueue *q) {
     return f;
 }
 
-int bfs_scan(Folder *start, Folder *root, char *result_log) {
-    BFSQueue q;
-    bfs_queue_init(&q);
-
-    bfs_enqueue(&q, root);
-    
-    int suspicious = 0;
-    char temp[512];
-    strcpy(result_log, "[ SCAN RESULTS ]\n");
-
-    while (!bfs_queue_empty(&q)) {
-        Folder *cur = bfs_dequeue(&q);
-        cur->is_scanned = 1;
-
-        if (cur->has_virus) {
-            snprintf(temp, sizeof(temp), " [!!!] %-12s >> VIRUS DETECTED!\n", cur->name);
-            suspicious++;
-        } else if (cur->infection_level >= 2) {
-            snprintf(temp, sizeof(temp), " [!!]  %-12s >> HIGH RISK\n", cur->name);
-            suspicious++;
-        } else if (cur->infection_level == 1) {
-            snprintf(temp, sizeof(temp), " [!]   %-12s >> Suspicious\n", cur->name);
-            suspicious++;
-        } else {
-            snprintf(temp, sizeof(temp), " [ ]   %-12s >> Clean\n", cur->name);
-        }
-        strncat(result_log, temp, 1023 - strlen(result_log));
-
-        for (int i = 0; i < cur->child_count; i++) {
-            bfs_enqueue(&q, cur->children[i]);
-        }
-    }
-    return suspicious;
-}
-
 Folder* bfs_spread_virus(Folder *root, int wave) {
     BFSQueue q;
     bfs_queue_init(&q);
