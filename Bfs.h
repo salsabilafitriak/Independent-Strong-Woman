@@ -19,6 +19,6 @@ Folder* bfs_dequeue(BFSQueue *q);
 
 int bfs_scan(Folder *start, Folder *root, char *result_log);
 
-Folder* bfs_spread_virus(Folder *root, int wave);
+Folder* bfs_find_virus(Folder *root);
 
 #endif
