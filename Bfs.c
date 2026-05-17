@@ -29,10 +29,6 @@ Folder* bfs_dequeue(BFSQueue *q) {
 }
 
 Folder* bfs_spread_virus(Folder *root, int wave) {
-    BFSQueue q;
-    bfs_queue_init(&q);
-    bfs_enqueue(&q, root);
-
     Folder *infected[BFS_QUEUE_SIZE];
     int inf_count = 0;
 
@@ -68,18 +64,7 @@ Folder* bfs_spread_virus(Folder *root, int wave) {
             }
         }
 }
+    return last_spread;
 }
 
-Folder* bfs_find_virus(Folder *root) {
-    BFSQueue q;
-    bfs_queue_init(&q);
-    bfs_enqueue(&q, root);
 
-    while (!bfs_queue_empty(&q)) {
-        Folder *cur = bfs_dequeue(&q);
-        if (cur->has_virus) return cur;
-        for (int i = 0; i < cur->child_count; i++)
-            bfs_enqueue(&q, cur->children[i]);
-    }
-    return NULL;
-}
