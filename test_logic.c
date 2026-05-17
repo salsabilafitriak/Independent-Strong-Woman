@@ -84,6 +84,9 @@ void plantVirus(Folder *root, int wave) {
     virus_node->has_virus = 1;
     virus_node->infection_level = 3;
 
+    Folder *verified = bfs_find_virus(root);
+if (!verified) return;
+
     char path_v[MAX_PATH_LEN];
     snprintf(path_v, sizeof(path_v), "%s/%s/GHOST_FILE.txt", lvl1->name, virus_node->name);
 
